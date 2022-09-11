@@ -1,78 +1,59 @@
+
+var tab = [5, 2, 9, 3, 7, 3, 12, 9]
+
+
+
+for (var i = 0; i < tab.length; i++) {
+    console.log(tab[i])
+}
+
+
+
+
+
+
+
+
+
+
+
+
+**
 const Binance = require('binance-api-node').default;
-const tulind = require('tulind');
+const BinanceChart = require("./src/BinanceChart");
 
 const client = Binance();
 
-const indicators = { stoch: [], rsi: [], macd: [] };
+(async () => {
 
-const status = {
-    stoch: {
-        previous: "neutral",
-        current: "neutral"
-    },
-    rsi: {
-        previous: "neutral",
-        current: "neutral"
-    },
-    macd: {
-        previous: "neutral",
-        current: "neutral"
-    },
-};
+    var binanceChart = new BinanceChart(client);
 
-var symbol = "ETHUSDT";
+    var symbol = "ETHUSDT";
 
-var interval = "1m";
+    var interval = "1m";
 
-client.candles({ symbol, interval }).then(candles => {
+    var ETHUSDT_1m_Chart = await binanceChart.open(symbol, interval);
 
-    client.ws.candles(symbol, interval, candle => {
+    ETHUSDT_1m_Chart.candles.onChange((currentCandle) => {
 
-        candles = updateCandles(candle, candles);
+        var candles = ETHUSDT_1m_Chart.candles.all();
 
         var opens = candles.map(element => element.open);
         var highes = candles.map(element => element.high);
         var lows = candles.map(element => element.low);
         var closes = candles.map(element => element.close);
 
-        tulind.indicators.stoch.indicator([highes, lows, closes], [14, 3, 3], (error, result) => {
-            if (error) return console.log(error);
-            console.log("Stoch : " + result[0][result[0].length - 1]);
-            indicators.stoch = result;
-        });
+        var stoch = ETHUSDT_1m_Chart.indicators.get("stoch", [highes, lows, closes], [14, 3, 3]);
+        var ema = ETHUSDT_1m_Chart.indicators.get("ema", [closes], [100]);
 
-        tulind.indicators.rsi.indicator([closes], [14], (error, result) => {
-            if (error) return console.log(error);
-            console.log("RSI : " + result[0][result[0].length - 1]);
-            indicators.rsi = result;
-        });
+        console.log(stoch);
 
-        tulind.indicators.macd.indicator([closes], [8, 21, 5], (error, result) => {
-            if (error) return console.log(error);
-            console.log("MACD : " + result[2][result[0].length - 1]);
-            indicators.macd = result;
-        });
+        //console.log("current : " + ETHUSDT_1m_Chart.candles.current());
+    });
 
-    })
+    ETHUSDT_1m_Chart.candles.onClose((closedCandle) => {
+        console.log("closed : " + ETHUSDT_1m_Chart.candles.closed());
+    });
 
-})
+})()
 
-function main(candles) { /// here goes our startegy :
-
-
-
-
-}
-
-function updateCandles(candle, candles) {
-
-    var oldCandleIndex = candles.findIndex(oldCandle => oldCandle.startTime == candle.startTime);
-
-    if (oldCandleIndex > -1) {
-        candles.splice(oldCandleIndex, 1, candle);
-    } else {
-        candles.push(candle);
-    }
-
-    return candles;
-} 
